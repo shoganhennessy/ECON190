@@ -1,0 +1,55 @@
+\documentclass[notitlepage,12pt]{article}
+
+% Packages to use
+\usepackage{setspace}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{lipsum}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage[margin=1in]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage{float}
+\rhead{S. Hogan-H}
+\lhead{Modeling Mobility and the Glass Ceiling}
+\usepackage{setspace}
+\doublespacing
+\usepackage[flushleft]{threeparttable}
+\usepackage{longtable}
+
+\usepackage[english]{isodate}
+\usepackage{hyperref}
+\usepackage{amsmath}
+
+% Author
+\author{Senan Hogan-H.}
+
+% Title
+\title{Modeling Mobility and the Glass Ceiling}
+
+\date{May 2018  \\
+\vspace{15mm}
+\textit{Working Paper}}
+
+
+%%% BEGIN %%%
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+% Abstract
+\begin{abstract}
+ABstract goes here.
+\end{abstract}
+
+\newpage
+\setcounter{page}{1}
+
+% Introduction
+\section{Introduction}
+
+There is a growing perception 
+
+\end{document}
