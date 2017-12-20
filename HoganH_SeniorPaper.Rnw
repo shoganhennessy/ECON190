@@ -42,8 +42,20 @@ Abstract goes here.
 % Introduction
 \section{Introduction}
 
-There is a growing perception.  See 
-\cite{lee2009trends}
+Think about:
+
+1) a one-sentence topic for your research paper (an economic question you would like to answer)
+
+2) briefly, how you plan to answer that question next semester.  
+
+Our first class meeting will be Wednesday, January 17th.  
+
+In preparation for that meeting, please come up with a tentative title for your paper and a paragraph about what you plan to do.  
+
+Then email your title and paragraph to me by 5 pm, Tuesday, January 16th.  I’ll put them all together in a document that we’ll go over the next day in class. 
+
+If you have two ideas for a paper, you may send me a title and paragraph for each.  However, I would try not to go above two. 
+
 
 \bibliographystyle{agsm}
 \bibliography{bibliography.bib}
