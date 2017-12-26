@@ -2,6 +2,9 @@
 # Note the idea in the paper may be extended to more groups than two, run simulations on this.
 
 
+# Get massive labour econ data set (CPS, PSID etc) and apply clutsering
+# Split groups based on findings, building model of "haves" and "have-nots"
+
 # Papers to look over:
   
 # https://eml.berkeley.edu//~moretti/mao.pdf
