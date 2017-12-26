@@ -2,8 +2,17 @@
 # Note the idea in the paper may be extended to more groups than two, run simulations on this.
 
 
-# Get massive labour econ data set (CPS, PSID etc) and apply clutsering
-# Split groups based on findings, building model of "haves" and "have-nots"
+
+
+# Idea 1. Clutsering in big data set (CPS, questions over panel)
+
+# COmpare composition of clusters, why and how.
+# Importantly: are there haves and have-not split?
+
+# Idea 2. Paper that takes OLS residuals as unobserved skill.
+# Run again, with CPS and other data set.
+# Run with better predictive models.
+# Does increased variance in error terms go away?  If so, attribute to over-reliance on OLD framework.
 
 # Papers to look over:
   
