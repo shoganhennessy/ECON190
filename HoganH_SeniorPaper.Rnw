@@ -9,7 +9,7 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
-\lhead{The Rise in Returns to Skill?}
+\lhead{The Rise in Returns to Skill?} 
 \rhead{Senan Hogan-H.}
 
 \usepackage{float}
