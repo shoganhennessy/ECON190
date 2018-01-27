@@ -1,5 +1,6 @@
 \documentclass[notitlepage,12pt]{article}
 \usepackage{setspace}
+\usepackage{Sweave}
 \doublespacing
 
 % Packages to use
