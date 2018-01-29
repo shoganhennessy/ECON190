@@ -17,7 +17,7 @@ object.size(CPS.data)
 for (i in c(2:length(list.files('March_CPS')))){
   CPS.data <- dplyr::bind_rows(CPS.data, read.csv(list.files('March_CPS')[i]))
 }
-
+# make data frames for 5 year periods.
 
 # Test for data.table
 CPS.data <- fread('March_CPS/CPS1980.csv')
