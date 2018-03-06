@@ -1,4 +1,4 @@
-# 10/02/2018 Senan Hogan-H.
+# 10/02/2018 (begun) Senan Hogan-H.
 
 # This file works on the March CPS dataset.
 # http://ceprdata.org/cps-uniform-data-extracts/march-cps-supplement/march-cps-data/
@@ -6,6 +6,8 @@
 # The code looks to observe and decompose wage inequality 1980-2016.
 # See corresponding research paper for use of this work.
 
+gc()
+ls()
 set.seed(47)
 library(tidyverse)
 library(xtable)
@@ -21,7 +23,6 @@ CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
 
 CPS.data <- CPS.data %>% subset(select = c(
   'year', # variable for year
-  'fnlwgt', # weight variable
   'rhrwage', # real hourly wage, per person
   'inch_pct', # income percentile (20 is top, 1 bottom 5%) 
   'rincp_all', # real annual income, for person
@@ -133,6 +134,15 @@ CPS.data <- CPS.data %>% subset(rincp_all >= 0) # positive total yearly income
 CPS.data <- CPS.data %>% subset(rincp_ern >= (7.25*40*14)) # year income above full time min wage, minimum 14 weeks
 CPS.data <- CPS.data %>% subset(age >= 18 & age <= 65) # 18-65 years old
 
+nrow(subset(CPS.data, year==2007))
+# extremely low amount of observations.
+nrow(subset(CPS.data, year==2008)) 
+# justification for removing 2008
+nrow(subset(CPS.data, year==2009))
+
+CPS.data <- CPS.data %>% subset(year != 2008) 
+# 2008 extremely low number of observations.
+
 # Summary statistics table.
 
 # Real wages are CPI-U-RS base 2015
@@ -149,21 +159,34 @@ CPS.data %>% subset(select = c(
 
 # forming data frame for median and indeed quantiles of hourly income.
 # and for inequality ratios.  90-10 and 90-50 and 80-20
-year <- median <- quantile_90 <- quantile_10 <- ratio_9010 <- c()
-median_1980 <- median(subset(CPS.data, year==1980)$rincp_ern)
-q_90_1980 <- quantile(subset(CPS.data, year==1980)$rincp_ern, 0.9)
-q_10_1980 <- quantile(subset(CPS.data, year==1980)$rincp_ern, 0.1)
-for (i in c(1980:2016)){
+
+years <- c(c(1980:2007), c(2009:2016))
+year <- median <- quantile_90 <- quantile_10 <- ratio_9010 <- ratio_8020 <- c()
+
+median_1980 <- quantile(subset(CPS.data, year==1980)$rincp_ern, 
+                                     probs = 0.5)
+
+q_90_1980 <- quantile(subset(CPS.data, year==1980)$rincp_ern, 
+                      probs = 0.9) 
+
+q_10_1980 <- quantile(subset(CPS.data, year==1980)$rincp_ern, 
+                      probs = 0.1)
+
+for (i in years){
   year <- c(year, i)
   x <- subset(CPS.data, year==i)$rincp_ern
-  median <- c(median, 100*(median(x)/median_1980))
-  q_90 <- quantile(x, 0.9)
-  q_10 <- quantile(x, 0.1)
+  med <- quantile(x, probs=0.5)
+  median <- c(median, 100*med/median_1980)
+  q_90 <- quantile(x, probs=0.9)
+  q_10 <- quantile(x, probs=0.1)
   quantile_90 <- c(quantile_90, 100*(q_90/q_90_1980))
   quantile_10 <- c(quantile_10, 100*(q_10/q_10_1980))
   ratio_9010 <- c(ratio_9010, q_90/q_10)
+  ratio_8020 <- c(ratio_8020, 
+                  quantile(x, probs=0.8)/quantile(x, probs=0.2))
 }
-CPS_ratio.data <- data.frame(year, ratio_9010, median, quantile_90, quantile_10)
+CPS_ratio.data <- data.frame(year, ratio_9010, median, quantile_90, quantile_10,
+                             ratio_8020)
 
 # Graph for median, 0.9 and 0.1 quantiles of income indexed 1980 is 100 for all.
 CPS_ratio.data %>% ggplot(aes(x=year)) +
@@ -180,23 +203,51 @@ CPS_ratio.data %>% ggplot(aes(x=year)) +
   theme_classic()
 
 
+
+# Graph for income ratios
+
+# Title in LaTeX:
+# Ratio of Annual Income Between 90th and 10th Percentiles, 1980-2016
+CPS_ratio.data %>% ggplot(aes(x=year))+
+  scale_x_continuous(breaks=seq(1980, 2016, 5))+
+  #scale_y_continuous(breaks=seq(3, 5, 0.25)) +
+  geom_point(aes(y=ratio_9010)) +
+  geom_line(aes(y=ratio_9010))  +
+  #geom_point(aes(y=ratio_8020)) +
+  #geom_line(aes(y=ratio_8020))  +
+  labs(x= 'Year', y='Ratio of Annual Income') +
+  theme_classic()
+
+
 # forming data frame for median and indeed quantiles of hourly wage.
-# and for inequality ratios.  90-10 and 90-50 and 80-20
-year <- median <- quantile_90 <- quantile_10 <- ratio_9010 <- c()
-median_1980 <- median(subset(CPS.data, year==1980)$rhrwage)
-q_90_1980 <- quantile(subset(CPS.data, year==1980)$rhrwage, 0.9)
-q_10_1980 <- quantile(subset(CPS.data, year==1980)$rhrwage, 0.1)
-for (i in c(1980:2016)){
+
+years <- c(c(1980:2007), c(2009:2016))
+year <- median <- quantile_90 <- quantile_10 <- ratio_9010 <- ratio_8020 <- c()
+
+median_1980 <- quantile(subset(CPS.data, year==1980)$rhrwage, 
+                        probs = 0.5)
+
+q_90_1980 <- quantile(subset(CPS.data, year==1980)$rhrwage, 
+                      probs = 0.9) 
+
+q_10_1980 <- quantile(subset(CPS.data, year==1980)$rhrwage, 
+                      probs = 0.1)
+
+for (i in years){
   year <- c(year, i)
   x <- subset(CPS.data, year==i)$rhrwage
-  median <- c(median, 100*(median(x)/median_1980))
-  q_90 <- quantile(x, 0.9)
-  q_10 <- quantile(x, 0.1)
+  med <- quantile(x, probs=0.5)
+  median <- c(median, 100*med/median_1980)
+  q_90 <- quantile(x, probs=0.9)
+  q_10 <- quantile(x, probs=0.1)
   quantile_90 <- c(quantile_90, 100*(q_90/q_90_1980))
   quantile_10 <- c(quantile_10, 100*(q_10/q_10_1980))
   ratio_9010 <- c(ratio_9010, q_90/q_10)
+  ratio_8020 <- c(ratio_8020, 
+                  quantile(x, probs=0.8)/quantile(x, probs=0.2))
 }
-CPS_ratio.data <- data.frame(year, ratio_9010, median, quantile_90, quantile_10)
+CPS_ratio.data <- data.frame(year, ratio_9010, median, quantile_90, quantile_10,
+                             ratio_8020)
 
 # Graph for median, 0.9 and 0.1 quantiles of income indexed 1980 is 100 for all.
 CPS_ratio.data %>% ggplot(aes(x=year)) +
@@ -212,26 +263,37 @@ CPS_ratio.data %>% ggplot(aes(x=year)) +
        colour = '') +
   theme_classic()
 
-# Graph for income ratios
-CPS_ratio.data %>% ggplot(aes(x=year)) +
+# Title in LaTeX:
+# Ratio of Wage Between 90th and 10th Percentiles, 1980-2016
+CPS_ratio.data %>% ggplot(aes(x=year))+
+  scale_x_continuous(breaks=seq(1980, 2016, 5))+
+  scale_y_continuous(breaks=seq(3, 5, 0.25)) +
   geom_point(aes(y=ratio_9010)) +
   geom_line(aes(y=ratio_9010))  +
+  # geom_point(aes(y=ratio_8020)) +
+  # geom_line(aes(y=ratio_8020))  +
+  labs(x= 'Year', y='Ratio of Hourly Wage') +
   theme_classic()
-
-# ggplot theme + theme_classic()
 
 
 
 # Prediction methods
-# Mincer equation
+
+# Mincer equation, by hourly wage
 CPS_mincer.reg <- CPS.data %>% lm(
   log(rhrwage) ~ education + I(age-education-6)+ I((age-education-6)^2), 
-                                  data=.,
-                                  weights=fnlwgt)
+  data=.)
+summary(CPS_mincer.reg)
 
-# regression tree
+# Mincer equation, by annual income
+CPS_mincer.reg <- CPS.data %>% lm(
+  log(rincp_ern) ~ education + I(age-education-6)+ I((age-education-6)^2), 
+  data=.)
+summary(CPS_mincer.reg)
+
+# regression tree, needs adjusting to remove other income variables.  
+# This is to remove 'self-prediction' in ML regresison, i.e. income predicting income.
+# See paper for further explanation of the variable selection issue.
 anova.model <- rpart(rhrwage~., data = CPS.data)
 # , weights = fnlwgt
 rpart.plot(anova.model, tweak=1.2)
-
-rm(list = ls())
