@@ -3,6 +3,8 @@
 # This file builds and works on the March CPS dataset.
 # http://ceprdata.org/cps-uniform-data-extracts/march-cps-supplement/march-cps-data/
 
+gc()
+ls()
 library(tidyverse)
 library(data.table)
 
@@ -125,7 +127,7 @@ CPS.data <- CPS.data %>% mutate(race = ifelse(
 CPS.data <- CPS.data %>% subset(select = -c(wbhaom))
 
 
-# Variable selection.  Drops most of the 475 variables, by selecting ~20
+# Variable selection.  Drops most of the 475 variables, by selecting 21
 CPS.data <- CPS.data %>% subset(select = c(
   'id', # variable to identify individuals
   'year', # variable for year
@@ -137,10 +139,9 @@ CPS.data <- CPS.data %>% subset(select = c(
   'rinch_ern', # real annual earnings (no unearned income), for household
   'age', # age
   'female', # whether female
+  'race', # race variable
   'empl', # employment status, 1 is employed
-  'educ92', # years education (only for after 92)
-  'educ', # years education 
-  'educ2', # years education 
+  'education', # years education 
   'citizen', # whether a citizen
   'married', # whether married
   'rural', # whether live in rural area
@@ -148,7 +149,8 @@ CPS.data <- CPS.data %>% subset(select = c(
   'centcity', # whether they live in a central city
   'selfemp', # self-employed
   'unmem', # union membership
-  'firmsz' # size of firm they work at  
+  'firmsz', # size of firm they work at  
+  'educ2', 'educ92', 'educ' #education variables
 ))
 
 # Normalise education variable for all years
