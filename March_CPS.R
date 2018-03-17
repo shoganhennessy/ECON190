@@ -127,7 +127,7 @@ CPS.data <- CPS.data %>% subset(select = -c(wbhaom))
 
 # Variable selection.  Drops most of the 475 variables, by selecting ~20
 CPS.data <- CPS.data %>% subset(select = c(
-  'id1', # variable to identify individuals
+  'id', # variable to identify individuals
   'year', # variable for year
   'rhrwage', # real hourly wage, per person
   'inch_pct', # income percentile (20 is top, 1 bottom 5%) 
@@ -137,7 +137,6 @@ CPS.data <- CPS.data %>% subset(select = c(
   'rinch_ern', # real annual earnings (no unearned income), for household
   'age', # age
   'female', # whether female
-  'wbhao', # race
   'empl', # employment status, 1 is employed
   'educ92', # years education (only for after 92)
   'educ', # years education 
