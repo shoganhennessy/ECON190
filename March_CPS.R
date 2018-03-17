@@ -4,6 +4,7 @@
 # http://ceprdata.org/cps-uniform-data-extracts/march-cps-supplement/march-cps-data/
 
 library(tidyverse)
+library(data.table)
 
 # The March CPS files are in a directory named 'March_CPS'
 # The following combines all files 1980-2016 to a VERY large csv files to be worked on 
@@ -13,53 +14,88 @@ library(tidyverse)
 # Find the individual files (in dta form) here:
 # http://ceprdata.org/cps-uniform-data-extracts/march-cps-supplement/march-cps-data/
 
-CPS.data <- read.csv('March_CPS/CPS1980.csv')
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1981.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1982.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1983.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1984.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1985.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1986.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1987.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1988.csv'))
+CPS.data <- fread('March_CPS/CPS1980.csv', header = T, sep = ',')
+CPS.data <- dplyr::bind_rows(CPS.data,
+                             fread('March_CPS/CPS1981.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1982.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1983.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1984.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1985.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data,
+                             fread('March_CPS/CPS1986.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1987.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1988.csv', header = T, sep = ','))
 
 # month, age variable changes from character/string type to factor type in 1989
 CPS.data$month <- as.factor(as.numeric(CPS.data$month))
 CPS.data$age <- as.factor(as.numeric(CPS.data$age))
 
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1989.csv'))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1989.csv', header = T, sep = ','))
 
 # make previous files have 3 for month.
 
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1990.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1991.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1992.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1993.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1994.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1995.csv'))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1990.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1991.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1992.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1993.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1994.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1995.csv', header = T, sep = ','))
 
 CPS.data$mig_flag <- as.factor(CPS.data$mig_flag)
 
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1996.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1997.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1998.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS1999.csv'))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1995.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1996.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1997.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data,
+                             fread('March_CPS/CPS1998.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS1999.csv', header = T, sep = ','))
 
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2000.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2001.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2002.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2003.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2004.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2005.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2006.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2007.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2008.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2009.csv'))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2000.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2001.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2002.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2003.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2004.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2005.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2006.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2007.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2008.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2009.csv', header = T, sep = ','))
 
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2010.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2011.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2012.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2013.csv'))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2010.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2010.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2012.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2013.csv', header = T, sep = ','))
 
 CPS.data$month <- match('March', month.name)
 CPS.data$parno <- as.factor(CPS.data$parno)
@@ -71,10 +107,12 @@ CPS.data$uncov <- as.numeric(CPS.data$uncov)
 CPS.data$agi <- as.factor(CPS.data$agi)
 CPS.data$fica <- as.factor(CPS.data$fica)
 CPS.data$fmoop <- as.factor(CPS.data$fmoop)
-
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2014.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2015.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, read.csv('March_CPS/CPS2016.csv'))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2014.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2015.csv', header = T, sep = ','))
+CPS.data <- dplyr::bind_rows(CPS.data, 
+                             fread('March_CPS/CPS2016.csv', header = T, sep = ','))
 
 # Make race a numeric variable:
 # race = 1 if white, non-Hispanic, =2 if black, =3 if Hispanic
@@ -85,7 +123,6 @@ CPS.data <- CPS.data %>% mutate(race = ifelse(
            wbhaom == 'Hispanic', 3, NA ))))
 # Drop redundant race variable 
 CPS.data <- CPS.data %>% subset(select = -c(wbhaom))
-
 
 
 # Variable selection.  Drops most of the 475 variables, by selecting ~20
@@ -137,7 +174,7 @@ CPS.data$education <- ifelse(CPS.data$year<1992 &
                                CPS.data$educ2=="College", 16,
                              CPS.data$education)
 CPS.data$education <- ifelse(CPS.data$year<1992 &
-                               CPS.data$educ2=="Advanced", 19,
+                               CPS.data$educ2=="Advanced", 18,
                              CPS.data$education)
 
 
@@ -212,8 +249,17 @@ nrow(subset(CPS.data, year==2009))
 CPS.data <- CPS.data %>% subset(year != 2008) 
 # 2008 extremely low number of observations.
 
+# Export large data frame
+fwrite(CPS.data, "CPS_data.csv")
 
-# Create a combined id/year variable
+# Export subsample of data frame, to test analysis.
+set.seed(47)
+fwrite(sample_n(CPS.data, 100000), "CPS__test_data.csv")
+
+
+
+# Create a combined id/year variable, for matching of predictions later
+# This takes a LONG time, can't find a more efficient method
 CPS.data %>% mutate(id2 =  toString(id))
 CPS.data %>% mutate(id3 =  toString(year))
 CPS.data %>% mutate(id1 =  paste(id2, id3, sep=''))
@@ -222,9 +268,8 @@ CPS.data <- CPS.data %>% subset(select = -c(id2, id3) )
 
 
 # Export large data frame
-write.csv(CPS.data, file = "CPS_data.csv", row.names=FALSE)
+fwrite(CPS.data, "CPS_data.csv")
 
 # Export subsample of data frame, to test analysis.
 set.seed(47)
-write.csv(sample_n(CPS.data, 100000),
-          file = "CPS__test_data.csv", row.names=FALSE)
+fwrite(sample_n(CPS.data, 100000), "CPS__test_data.csv")
