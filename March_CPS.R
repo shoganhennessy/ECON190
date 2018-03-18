@@ -68,9 +68,6 @@ CPS.data <- dplyr::bind_rows(CPS.data,
 
 CPS.data$mig_flag <- as.factor(CPS.data$mig_flag)
 
-
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1995.csv'))
 CPS.data <- dplyr::bind_rows(CPS.data, 
                              read.csv('March_CPS/CPS1996.csv'))
 CPS.data <- dplyr::bind_rows(CPS.data, 
