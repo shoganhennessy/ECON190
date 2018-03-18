@@ -17,8 +17,8 @@ library(rpart.plot)
 library(stargazer)
 library(data.table)
 
-CPS.data <- fread('CPS__test_data.csv', header = T, sep = ',')
-# CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
+# CPS.data <- fread('CPS__test_data.csv', header = T, sep = ',')
+CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
 
 
 # Summary statistics table.
@@ -151,8 +151,27 @@ CPS_ratio.data %>% ggplot(aes(x=year))+
   labs(x= 'Year', y='Ratio of Hourly Wage') +
   theme_classic()
 
+# regression tree, graphs for data section.  
+# This is to remove 'self-prediction' in ML regresison, i.e. income predicting income.
+# See paper for further explanation of the variable selection issue.
+tree.model <- CPS.data %>% subset(select = 
+                                     -c(inch_pct, rincp_all,
+                                        rincp_ern, rinch_all, rinch_ern)) %>%
+  subset(year>1979 & year <1986) %>%
+  rpart(log(rhrwage) ~ ., data = .)
+rpart.plot(tree.model, tweak=1.2) # Provide plot for methods section 
 
-# Prediction methods 1.
+tree.model <- CPS.data %>% subset(select = 
+                                    -c(inch_pct, rincp_all,
+                                       rincp_ern, rinch_all, rinch_ern)) %>%
+  subset(year>2009 & year < 2017) %>%
+  rpart(log(rhrwage) ~ ., data = .)
+rpart.plot(tree.model, tweak=1.2) # Provide plot for methods section
+
+
+
+
+# Prediction methods 1. Mincer
 
 # Mincer equation, by hourly wage
 CPS_mincer1.reg <- CPS.data %>% lm(
@@ -173,7 +192,10 @@ stargazer(CPS_mincer1.reg, CPS_mincer2.reg,
           header = FALSE, float = FALSE, no.space = TRUE)
 
 
-# Prediction methods 2.
+
+
+
+# Prediction methods 2. Adjusted Mincer
 
 years <- c(c(1980:2007), c(2009:2016))
 year <- sd_wage <- sd_wage_unexplained <- c()
@@ -190,25 +212,13 @@ for (i in years){
                            sd(CPS_mincer.reg$residuals))
   sd_wage <- c(sd_wage, sd(CPS_mincer.reg$fitted.values))
 }
-data_frame(year, sd_wage) %>% ggplot(aes(x = year)) +
+data_frame(year, sd_wage, sd_wage_unexplained) %>% ggplot(aes(x = year)) +
   geom_point(aes(y =  sd_wage, colour = 'SD predicted wage')) +
   geom_smooth(aes(y =  sd_wage, colour = 'SD predicted wage'), method='lm') +
   geom_point(aes(y =  sd_wage_unexplained, colour = 'SD residuals')) +
   geom_smooth(aes(y =  sd_wage_unexplained, colour = 'SD residuals'), method='lm') +
   theme_classic()
 
-
-
 # Mincer equation adjusted, by annual income
 CPS_mincer2.reg <- CPS.data %>% lm(
   log(rhrwage) ~ ., data=.)
-
-# regression tree, graphs for data section.  
-# This is to remove 'self-prediction' in ML regresison, i.e. income predicting income.
-# See paper for further explanation of the variable selection issue.
-anova.model <- CPS.data %>% subset(select = 
-                                     -c(inch_pct, rincp_all,
-                                        rincp_ern, rinch_all, rinch_ern)) %>%
-  subset(year>1979 & year <1981) %>%
-  rpart(log(rhrwage) ~ ., data = .)
-rpart.plot(anova.model, tweak=1.2) # Provide plots 
