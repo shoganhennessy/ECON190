@@ -197,10 +197,11 @@ stargazer(CPS_mincer1.reg, CPS_mincer2.reg,
 
 # Prediction methods 2. Adjusted Mincer
 
+
+# Mincer equation adjusted, by hourly wage
 years <- c(c(1980:2007), c(2009:2016))
 year <- sd_wage <- sd_wage_unexplained <- c()
 
-# Mincer equation adjusted, by hourly wage
 for (i in years){
   year <- c(year, i)
   CPS_mincer.reg <- CPS.data %>% subset(year==i) %>%
@@ -219,6 +220,27 @@ data_frame(year, sd_wage, sd_wage_unexplained) %>% ggplot(aes(x = year)) +
   geom_smooth(aes(y =  sd_wage_unexplained, colour = 'SD residuals'), method='lm') +
   theme_classic()
 
-# Mincer equation adjusted, by annual income
-CPS_mincer2.reg <- CPS.data %>% lm(
-  log(rhrwage) ~ ., data=.)
+# Random Forest, by hourly wage
+
+years <- c(c(1980:2007), c(2009:2016))
+year <- sd_wage <- sd_wage_unexplained <- c()
+
+for (i in years){
+  year <- c(year, i)
+  CPS_year.data <- CPS.data %>% 
+    subset(select = -c(inch_pct, rincp_all,
+                       rincp_ern, rinch_all, rinch_ern)) %>% 
+    subset(year==i)
+  
+  CPS_forest.reg <- train(log(rhrwage) ~ . ,
+                          data = CPS_year.data , 
+                          method = "rf" , 
+                          trControl = trainControl(method="oob"), 
+                          tuneGrid = data.frame(mtry = ncol(CPS_year.data)),
+                          na.action = na.omit, 
+                          metric='RMSE')
+  
+  sd_wage_unexplained <- c(sd_wage_unexplained,
+                           sd(CPS_mincer.reg$residuals))
+  sd_wage <- c(sd_wage, sd(CPS_mincer.reg$fitted.values))
+}
