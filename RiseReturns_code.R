@@ -17,8 +17,8 @@ library(rpart.plot)
 library(stargazer)
 library(data.table)
 
-# CPS.data <- fread('CPS__test_data.csv', header = T, sep = ',')
-CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
+CPS.data <- fread('CPS__test_data.csv', header = T, sep = ',')
+# CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
 
 
 # Summary statistics table.
@@ -30,8 +30,8 @@ CPS.data %>% subset(select = c(
   'age',
   'education',
   'female')) %>% 
-    stargazer(. , summary=TRUE,
-              title="Summary Statistics, 1980-2016")
+  stargazer(. , summary=TRUE,
+            title="Summary Statistics, 1980-2016")
 
 # forming data frame for median and indeed quantiles of hourly income.
 # and for inequality ratios.  90-10 and 90-50 and 80-20
@@ -40,7 +40,7 @@ years <- c(c(1980:2007), c(2009:2016))
 year <- median <- quantile_90 <- quantile_10 <- ratio_9010 <- ratio_8020 <- c()
 
 median_1980 <- quantile(subset(CPS.data, year==1980)$rincp_ern, 
-                                     probs = 0.5)
+                        probs = 0.5)
 
 q_90_1980 <- quantile(subset(CPS.data, year==1980)$rincp_ern, 
                       probs = 0.9) 
@@ -154,11 +154,11 @@ CPS_ratio.data %>% ggplot(aes(x=year))+
 # regression tree, graphs for data section.  
 # This is to remove 'self-prediction' in ML regresison, i.e. income predicting income.
 # See paper for further explanation of the variable selection issue.
-tree.model <- CPS.data %>% subset(select = 
-                                     -c(inch_pct, rincp_all,
-                                        rincp_ern, rinch_all, rinch_ern)) %>%
-  subset(year>1979 & year <1986) %>%
-  rpart(log(rhrwage) ~ ., data = .)
+log_wage_equation <- log(rhrwage) ~ age + female + race + + citizen + 
+  married + rural + suburb + centcity + selfemp + unmem + firmsz + education
+
+tree.model <- CPS.data %>% subset(year>1979 & year <1986) %>%
+  rpart(log_wage_equation , data = .)
 rpart.plot(tree.model, tweak=1.2) # Provide plot for methods section 
 
 tree.model <- CPS.data %>% subset(select = 
@@ -170,8 +170,89 @@ rpart.plot(tree.model, tweak=1.2) # Provide plot for methods section
 
 
 
+# Residuals table
+# Title : Inequality Measures Based on Regression Model Residuals for Hourly Wage
+years <- c(1980, 1985, 1990, 1995, 2000, 2005, 2010)
 
-# Prediction methods 1. Mincer
+# storer to make a matrix for a LaTeX table
+residual_store <- c()
+
+log_wage_equation <- log(rhrwage) ~ age + female + race + citizen + 
+  married + rural + suburb + centcity + selfemp + unmem + education
+
+set.seed(47)
+for (i in years){
+  print(i)
+  CPS_subset.data <- subset(CPS.data, year>=i & year<(i+5))
+  if (i==2010){
+    CPS_subset.data <- subset(CPS.data, year>=i & year<(i+7))
+  }
+  
+  # Model 1. Mincer Equation
+  CPS_mincer.reg <- CPS_subset.data %>% 
+    lm(log(rhrwage) ~ education + I(age-education-6) + I((age-education-6)^2), 
+    data=.)
+  errors <- CPS_mincer.reg$residuals
+  sd <- sd(CPS_subset.data$Mincer_log_predictions)
+  q_90 <- quantile(errors, probs = 0.9)  
+  q_50 <- quantile(errors, probs = 0.5)  
+  q_10 <- quantile(errors, probs = 0.1)  
+  residual_store <- c(residual_store, sd, 
+                      (q_90 - q_10), (q_90 - q_50), (q_50 - q_10))
+    
+  # Model 2. Adjusted Mincer
+  CPS_mincer.reg <- CPS_subset.data %>%
+    lm( log(rhrwage) ~ I(education) + I(education^2) +
+          I(age-education-6) + I((age-education-6)^2) +
+          I((age-education-6)^3) + I((age-education-6)^4), 
+        data=.)
+  errors <- CPS_mincer.reg$residuals
+  sd <- sd(CPS_mincer.reg$fitted.values)
+  q_90 <- quantile(errors, probs = 0.9)  
+  q_50 <- quantile(errors, probs = 0.5)  
+  q_10 <- quantile(errors, probs = 0.1)  
+  residual_store <- c(residual_store, sd, 
+                      (q_90 - q_10), (q_90 - q_50), (q_50 - q_10))
+
+  # Model 3. Random Forest
+  CPS_forest.reg <- CPS_subset.data %>%
+    train(log_wage_equation ,
+          preProcess=c('center', 'scale'),
+          data = . , 
+          method = 'rf' , 
+          trControl = trainControl(method='oob'), 
+          tuneGrid = data.frame(mtry = c(1:21)),
+          na.action = na.pass, importance = T,
+          metric='RMSE')
+  predictions <- predict(CPS_forest.reg)
+  errors <- log(CPS_subset.data$rhrwage) - predictions
+  sd <- sd(predictions)
+  sd <- sd(CPS_mincer.reg$fitted.values)
+  q_90 <- quantile(errors, probs = 0.9)  
+  q_50 <- quantile(errors, probs = 0.5)  
+  q_10 <- quantile(errors, probs = 0.1)  
+  residual_store <- c(residual_store, sd, 
+                      (q_90 - q_10), (q_90 - q_50), (q_50 - q_10))  
+  #store observation numbers
+  residual_store <- c(residual_store, nrow(CPS_subset.data))  
+}
+
+residual_store <- format(round(residual_store, 2), nsmall = 2)
+
+residual_store <- c('Model 1.', '', '', '',
+  'Model 2.', '', '', '',
+  'Model 3.', '', '', '', '\multicolumn{2}{l}{Observations:}',
+  'S.d.', '90-10', '90-50', '50-10',
+  'S.d.', '90-10', '90-50', '50-10',
+  'S.d.', '90-10', '90-50', '50-10','', residual_store)
+
+residual_store <- matrix(residual_store, nrow=13, ncol=9)
+tab <- xtable(residual_store, comment=FALSE)
+print(tab, type="latex", include.rownames = FALSE, include.colnames = FALSE)
+
+
+
+#  First regression table 
 
 # Mincer equation, by hourly wage
 CPS_mincer1.reg <- CPS.data %>% lm(
@@ -195,13 +276,154 @@ stargazer(CPS_mincer1.reg, CPS_mincer2.reg,
 
 
 
-# Prediction methods 2. Adjusted Mincer
 
 
-# Mincer equation adjusted, by hourly wage
+
+
+
+# Prediction methods 1. Mincer
+rm(list=ls())
+CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
+
+# Form static model for time period 1980-1984
+CPS_mincer1.reg <- CPS.data %>% subset(year >=1980 & year<1985)%>% lm(
+  log(rhrwage) ~ education + I(age-education-6) + I((age-education-6)^2), 
+  data=.)
+
+CPS.data$Mincer_Ybar_rhrwage <- 
+  predict(CPS_mincer1.reg)
+
+Mincer_residuals_rhrwage <- CPS_mincer1.reg$residuals
+
+Mincer_predicted_rhrwage <- id <- Variable_residuals <- c()
+
+#Form varying model
 years <- c(c(1980:2007), c(2009:2016))
-year <- sd_wage <- sd_wage_unexplained <- c()
+for (i in years){
+  print(i)
+  year <- c(year, i)
+  CPS_mincer.reg <- CPS.data %>% subset(year==i) %>%
+    lm( log(rhrwage) ~ education + I(age-education-6) + I((age-education-6)^2), 
+        data=.)
+  Mincer_predicted_rhrwage <- c(Mincer_predicted_rhrwage,
+                                CPS_mincer.reg$fitted.values)
+  Variable_residuals <- c(Variable_residuals, 
+                          CPS_mincer.reg$residuals)
+  id <- c(id, subset(CPS.data, year==i)$id)
+}
 
+CPS.data <- dplyr::right_join(data_frame(Mincer_predicted_rhrwage, 
+                                         Variable_residuals, id), 
+                              CPS.data, by = 'id')
+rm(Mincer_predicted_rhrwage, Variable_residuals, id)
+
+# Form fixed residual distribution
+CPS.data$Mincer_resid_percentile <- ecdf(
+  CPS.data$Variable_residuals)(CPS.data$Variable_residuals)
+
+CPS.data$Mincer_fixed_resid_rhrwage <- quantile(Mincer_residuals_rhrwage, 
+                                        probs = CPS.data$Mincer_resid_percentile, 
+                                        na.rm = TRUE,
+                                        names = FALSE)
+
+CPS.data %>% ggplot(aes(x=Mincer_resid_percentile, y=Mincer_fixed_resid_rhrwage)) +
+  geom_point()
+
+
+# Save Ybar, Y1, Y2, Y3
+CPS.data$Mincer_Y1_rhrwage <- predict(CPS_mincer1.reg, CPS.data) + 
+  CPS.data$Mincer_residuals_rhrwage
+
+CPS.data$Mincer_Y2_rhrwage <- CPS.data$Mincer_predicted_rhrwage + 
+  CPS.data$Mincer_residuals_rhrwage
+
+CPS.data$Mincer_Y3_rhrwage <- CPS.data$Mincer_predicted_rhrwage + 
+  CPS.data$Variable_residuals
+
+# Graph of components
+years <- c(c(1985:2007), c(2009:2016))
+year <- quantity_diff_9010 <- returns_diff_9010 <- Y3_diff_9010 <- errors_diff_9010 <- c()
+
+for (i in years){
+  print(i)
+  year <- c(year, i)
+  Y3 <- subset(CPS.data, year==i)$Mincer_Y3_rhrwage
+  Y3_90 <- quantile(Y3, probs=0.9)
+  Y3_10 <- quantile(Y3, probs=0.1)
+  Y3_diff_9010 <- c(Y3_diff_9010, Y3_90 - Y3_10)            
+
+  quantity <- subset(CPS.data, year==i)$Mincer_Y1_rhrwage -
+    subset(CPS.data, year==i)$Mincer_Ybar_rhrwage
+  quantity_90 <- quantile(quantity, probs=0.9)
+  quantity_10 <- quantile(quantity, probs=0.1)
+  quantity_diff_9010 <- c(quantity_diff_9010, (quantity_90 - quantity_10)) 
+  
+  returns <- subset(CPS.data, year==i)$Mincer_Y2_rhrwage -
+    (subset(CPS.data, year==i)$Mincer_Y1_rhrwage -
+    subset(CPS.data, year==i)$Mincer_Ybar_rhrwage)
+  returns_90 <- quantile(returns, probs=0.9)
+  returns_10 <- quantile(returns, probs=0.1)
+  returns_diff_9010 <- c(returns_diff_9010, (returns_90 - returns_10))
+  
+  errors <- subset(CPS.data, year==i)$Mincer_Y3_rhrwage - 
+    subset(CPS.data, year==i)$Mincer_Y2_rhrwage
+  errors_90 <- quantile(errors, probs=0.9)
+  errors_10 <- quantile(errors, probs=0.1)
+  errors_diff_9010 <- c(errors_diff_9010, errors_90 - errors_10 )
+}
+quantity_diff_9010
+returns_diff_9010
+errors_diff_9010
+mean(quantity_diff_9010)
+mean(returns_diff_9010)
+mean(errors_diff_9010)
+
+
+quantity_diff_9010 <- quantity_diff_9010 - mean(quantity_diff_9010)
+returns_diff_9010 <- returns_diff_9010 - mean(returns_diff_9010)
+errors_diff_9010 <- errors_diff_9010 - mean(errors_diff_9010)
+mean(Y3_diff_9010 - quantity_diff_9010 - returns_diff_9010 - errors_diff_9010 )
+
+CPS_Y.data <- data.frame(year, Y3_diff_9010, quantity_diff_9010, 
+                         returns_diff_9010, errors_diff_9010)
+
+CPS_Y.data %>% ggplot(aes(x=year)) +
+  scale_x_continuous(breaks=seq(1985,2016,5)) +
+  geom_point(aes(y=quantity_diff_9010, colour='Charcteristics')) +
+  geom_line(aes(y=quantity_diff_9010, colour='Charcteristics')) +
+  geom_point(aes(y=returns_diff_9010, colour='Returns')) +
+  geom_line(aes(y=returns_diff_9010, colour='Returns')) +
+  geom_point(aes(y=errors_diff_9010, colour='Unobserved')) +
+  geom_line(aes(y=errors_diff_9010, colour='Unobserved')) +
+  #geom_point(aes(y=Y3_diff_9010, colour='Total')) +
+  #geom_line(aes(y=Y3_diff_9010, colour='Total')) +  
+  labs(x= 'Year', y='Relative Component', 
+       colour = '') +
+  theme_classic() + 
+  theme(legend.position="top")
+
+
+
+
+
+# Prediction methods 2. Adjusted Mincer
+rm(list=ls())
+CPS.data <- fread('CPS__test_data.csv', header = T, sep = ',')
+
+CPS_mincer1.reg <- CPS.data %>% subset(year >=1980 & year<=1985) %>%
+  lm( log(rhrwage) ~ I(education) + I(education^2) +
+        I(age-education-6) + I((age-education-6)^2) +
+        I((age-education-6)^3) + I((age-education-6)^4), 
+      data=.)
+
+CPS.data$Mincer_Ybar_rhrwage <- mean(log(subset(CPS.data, year >=1980 & year<=1985)$rhrwage))
+
+Mincer_residuals_rhrwage <- CPS_mincer1.reg$residuals
+
+Mincer_predicted_rhrwage <- id <- Variable_residuals <- c()
+
+#Form varying model
+years <- c(c(1980:2007), c(2009:2016))
 for (i in years){
   year <- c(year, i)
   CPS_mincer.reg <- CPS.data %>% subset(year==i) %>%
@@ -209,38 +431,336 @@ for (i in years){
           I(age-education-6) + I((age-education-6)^2) +
           I((age-education-6)^3) + I((age-education-6)^4), 
         data=.)
-  sd_wage_unexplained <- c(sd_wage_unexplained,
-                           sd(CPS_mincer.reg$residuals))
-  sd_wage <- c(sd_wage, sd(CPS_mincer.reg$fitted.values))
+  Mincer_predicted_rhrwage <- c(Mincer_predicted_rhrwage,
+                                CPS_mincer.reg$fitted.values)
+  Variable_residuals <- c(Variable_residuals, 
+                          CPS_mincer.reg$residuals)
+  id <- c(id, subset(CPS.data, year==i)$id)
 }
-data_frame(year, sd_wage, sd_wage_unexplained) %>% ggplot(aes(x = year)) +
-  geom_point(aes(y =  sd_wage, colour = 'SD predicted wage')) +
-  geom_smooth(aes(y =  sd_wage, colour = 'SD predicted wage'), method='lm') +
-  geom_point(aes(y =  sd_wage_unexplained, colour = 'SD residuals')) +
-  geom_smooth(aes(y =  sd_wage_unexplained, colour = 'SD residuals'), method='lm') +
-  theme_classic()
 
-# Random Forest, by hourly wage
+predictions.data <- data_frame(Mincer_predicted_rhrwage, Variable_residuals, id)
 
+CPS.data <- dplyr::right_join(predictions.data, CPS.data, by = 'id')
+
+variable_residuals <- Variable_residuals
+
+# Form fixed residual distribution
+CPS.data <- CPS.data %>% mutate(Mincer_resid_precentile = 
+                                  ecdf(Variable_residuals)(variable_residuals))
+
+CPS.data$Mincer_residuals_rhrwage <- quantile(Mincer_residuals_rhrwage, 
+                                              probs = CPS.data$Mincer_resid_precentile)
+
+# Save Ybar, Y1, Y2, Y3
+CPS.data$Mincer_Y1_rhrwage <- predict(CPS_mincer1.reg, CPS.data) + 
+  CPS.data$Mincer_residuals_rhrwage
+
+CPS.data$Mincer_Y2_rhrwage <- CPS.data$Mincer_predicted_rhrwage + 
+  CPS.data$Mincer_residuals_rhrwage
+
+CPS.data$Mincer_Y3_rhrwage <- CPS.data$Mincer_predicted_rhrwage + 
+  CPS.data$Variable_residuals
+
+# Graph of components
 years <- c(c(1980:2007), c(2009:2016))
-year <- sd_wage <- sd_wage_unexplained <- c()
+year <- quantity_diff_9010 <- returns_diff_9010 <- Y3_diff_9010 <- errors_diff_9010 <- c()
 
 for (i in years){
   year <- c(year, i)
-  CPS_year.data <- CPS.data %>% 
-    subset(select = -c(inch_pct, rincp_all,
-                       rincp_ern, rinch_all, rinch_ern)) %>% 
-    subset(year==i)
+  Y3 <- subset(CPS.data, year==i)$Mincer_Y3_rhrwage
+  Y3_90 <- quantile(Y3, probs=0.9)
+  Y3_10 <- quantile(Y3, probs=0.1)
+  Y3_diff_9010 <- c(Y3_diff_9010, Y3_90 - Y3_10)            
   
-  CPS_forest.reg <- train(log(rhrwage) ~ . ,
-                          data = CPS_year.data , 
-                          method = "rf" , 
-                          trControl = trainControl(method="oob"), 
-                          tuneGrid = data.frame(mtry = ncol(CPS_year.data)),
-                          na.action = na.omit, 
-                          metric='RMSE')
+  quantity <- subset(CPS.data, year==i)$Mincer_Y1_rhrwage
+  quantity_90 <- quantile(quantity, probs=0.9)
+  quantity_10 <- quantile(quantity, probs=0.1)
+  quantity_diff_9010 <- c(quantity_diff_9010, quantity_90 - quantity_10 - 1 ) 
   
-  sd_wage_unexplained <- c(sd_wage_unexplained,
-                           sd(CPS_mincer.reg$residuals))
-  sd_wage <- c(sd_wage, sd(CPS_mincer.reg$fitted.values))
+  returns <- subset(CPS.data, year==i)$Mincer_Y2_rhrwage - 
+    subset(CPS.data, year==i)$Mincer_Y1_rhrwage
+  returns_90 <- quantile(returns, probs=0.9)
+  returns_10 <- quantile(returns, probs=0.1)
+  returns_diff_9010 <- c(returns_diff_9010, returns_90 - returns_10)
+  
+  errors <- subset(CPS.data, year==i)$Mincer_Y3_rhrwage - 
+    subset(CPS.data, year==i)$Mincer_Y2_rhrwage
+  errors_90 <- quantile(errors, probs=0.9)
+  errors_10 <- quantile(errors, probs=0.1)
+  errors_diff_9010 <- c(errors_diff_9010, errors_90 - errors_10  - 1 )
 }
+CPS_Y.data <- data.frame(year, quantity_diff_9010, 
+                         returns_diff_9010, errors_diff_9010)
+
+CPS_Y.data %>% ggplot(aes(x=year)) +
+  scale_x_continuous(breaks=seq(1980,2016,5)) +
+  scale_y_continuous(breaks=seq(0,1,0.2)) +
+  geom_point(aes(y=quantity_diff_9010, colour='Charcteristics')) +
+  geom_line(aes(y=quantity_diff_9010, colour='Charcteristics')) +
+  geom_point(aes(y=returns_diff_9010, colour='Returns')) +
+  geom_line(aes(y=returns_diff_9010, colour='Returns')) +
+  geom_point(aes(y=errors_diff_9010, colour='Unobserved')) +
+  geom_line(aes(y=errors_diff_9010, colour='Unobserved')) +  
+  labs(x= 'Year', y='Relative Component', 
+       colour = '') +
+  theme_classic() + 
+  theme(legend.position="top")
+
+
+
+# Prediction methods 3. Random Forest
+rm(list=ls())
+CPS.data <- fread('CPS__test_data.csv', header = T, sep = ',')
+log_wage_equation <- log(rhrwage) ~ age + female + race + citizen + 
+  married + rural + suburb + centcity + selfemp + unmem + education
+
+
+CPS_mincer1.reg <- CPS.data %>% subset(year >=1980 & year<=1985) %>%
+  train(log_wage_equation ,
+        preProcess=c('center', 'scale'),
+        data = . , 
+        method = 'rf' , 
+        trControl = trainControl(method='oob'), 
+        tuneGrid = data.frame(mtry = c(1:21)),
+        na.action = na.pass, importance = T,
+        metric='RMSE')
+
+CPS.data$Mincer_Ybar_rhrwage <- mean(log(subset(CPS.data, year >=1980 & year<=1985)$rhrwage))
+
+Mincer_residuals_rhrwage <- log(subset(CPS.data, year >=1980 & year<=1985)$rhrwage) - 
+  predict(CPS_mincer1.reg)
+
+Mincer_predicted_rhrwage <- id <- Variable_residuals <- c()
+
+#Form varying model
+years <- c(c(1980:2007), c(2009:2016))
+for (i in years){
+  print(i)
+  year <- c(year, i)
+  CPS_mincer.reg <- CPS.data %>% subset(year ==i) %>%
+  train(log_wage_equation ,
+        preProcess=c('center', 'scale'),
+        data = . , 
+        method = 'rf' , 
+        trControl = trainControl(method='oob'), 
+        tuneGrid = data.frame(mtry = c(1:21)),
+        na.action = na.pass, importance = T,
+        metric='RMSE')
+  Mincer_predicted_rhrwage <- c(Mincer_predicted_rhrwage,
+                                predict(CPS_mincer.reg))
+  Variable_residuals <- c(Variable_residuals, 
+                          log(subset(CPS.data, year==i)$rhrwage) - 
+                            predict(CPS_mincer.reg))
+  id <- c(id, subset(CPS.data, year==i)$id)
+}
+
+predictions.data <- data_frame(Mincer_predicted_rhrwage, Variable_residuals, id)
+
+CPS.data <- dplyr::right_join(predictions.data, CPS.data, by = 'id')
+
+variable_residuals <- Variable_residuals
+
+# Form fixed residual distribution
+CPS.data <- CPS.data %>% mutate(Mincer_resid_precentile = 
+                                  ecdf(Variable_residuals)(variable_residuals))
+
+CPS.data$Mincer_residuals_rhrwage <- quantile(Mincer_residuals_rhrwage, 
+                                              probs = CPS.data$Mincer_resid_precentile)
+
+# Save Ybar, Y1, Y2, Y3
+CPS.data$Mincer_Y1_rhrwage <- predict(CPS_mincer1.reg, CPS.data) + 
+  CPS.data$Mincer_residuals_rhrwage
+
+CPS.data$Mincer_Y2_rhrwage <- CPS.data$Mincer_predicted_rhrwage + 
+  CPS.data$Mincer_residuals_rhrwage
+
+CPS.data$Mincer_Y3_rhrwage <- CPS.data$Mincer_predicted_rhrwage + 
+  CPS.data$Variable_residuals
+
+# Graph of components
+years <- c(c(1980:2007), c(2009:2016))
+year <- quantity_diff_9010 <- returns_diff_9010 <- Y3_diff_9010 <- errors_diff_9010 <- c()
+
+for (i in years){
+  year <- c(year, i)
+  Y3 <- subset(CPS.data, year==i)$Mincer_Y3_rhrwage
+  Y3_90 <- quantile(Y3, probs=0.9)
+  Y3_10 <- quantile(Y3, probs=0.1)
+  Y3_diff_9010 <- c(Y3_diff_9010, Y3_90 - Y3_10)            
+  
+  quantity <- subset(CPS.data, year==i)$Mincer_Y1_rhrwage
+  quantity_90 <- quantile(quantity, probs=0.9)
+  quantity_10 <- quantile(quantity, probs=0.1)
+  quantity_diff_9010 <- c(quantity_diff_9010, quantity_90 - quantity_10 - 1 ) 
+  
+  returns <- subset(CPS.data, year==i)$Mincer_Y2_rhrwage - 
+    subset(CPS.data, year==i)$Mincer_Y1_rhrwage
+  returns_90 <- quantile(returns, probs=0.9)
+  returns_10 <- quantile(returns, probs=0.1)
+  returns_diff_9010 <- c(returns_diff_9010, returns_90 - returns_10)
+  
+  errors <- subset(CPS.data, year==i)$Mincer_Y3_rhrwage - 
+    subset(CPS.data, year==i)$Mincer_Y2_rhrwage
+  errors_90 <- quantile(errors, probs=0.9)
+  errors_10 <- quantile(errors, probs=0.1)
+  errors_diff_9010 <- c(errors_diff_9010, errors_90 - errors_10  - 1 )
+}
+quantity_diff_9010 <- quantity_diff_9010 - mean(quantity_diff_9010)
+returns_diff_9010 <- returns_diff_9010 - mean(returns_diff_9010)
+errors_diff_9010 <- errors_diff_9010 - mean(errors_diff_9010)
+
+CPS_Y.data <- data.frame(year, quantity_diff_9010, 
+                         returns_diff_9010, errors_diff_9010)
+
+CPS_Y.data %>% ggplot(aes(x=year)) +
+  scale_x_continuous(breaks=seq(1980,2016,5)) +
+  scale_y_continuous(breaks=seq(0,1,0.2)) +
+  geom_point(aes(y=quantity_diff_9010, colour='Charcteristics')) +
+  geom_line(aes(y=quantity_diff_9010, colour='Charcteristics')) +
+  geom_point(aes(y=returns_diff_9010, colour='Returns')) +
+  geom_line(aes(y=returns_diff_9010, colour='Returns')) +
+  geom_point(aes(y=errors_diff_9010, colour='Unobserved')) +
+  geom_line(aes(y=errors_diff_9010, colour='Unobserved')) +  
+  labs(x= 'Year', y='Relative Component', 
+       colour = '') +
+  theme_classic() + 
+  theme(legend.position="top")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Random Forest Variable Importance, by hourly wage
+
+years <- c(c(1980:2007), c(2009:2016))
+year <- education_importance <- age_importance <- female_importance <- c()
+
+log_wage_equation <- log(rhrwage) ~ age + female + race + citizen + 
+  married + rural + suburb + centcity + selfemp + unmem + education
+
+set.seed(47)
+for (i in years){
+  print(i)
+  year <- c(year, i)
+  CPS_forest.reg <- CPS.data %>% subset(year==i) %>% 
+    train(log_wage_equation ,
+          preProcess=c('center', 'scale'),
+          data = . , 
+          method = 'rf' , 
+          trControl = trainControl(method='oob'), 
+          tuneGrid = data.frame(mtry = c(1:21)),
+          na.action = na.pass, importance = T,
+          metric='RMSE')
+  
+  CPS_forest.Imp <- varImp(CPS_forest.reg, scale = FALSE)
+  
+  education_importance <- 
+    c(education_importance, CPS_forest.Imp$importance$Overall[11])
+  age_importance <- 
+    c(age_importance, CPS_forest.Imp$importance$Overall[1])
+  female_importance <- 
+    c(female_importance, CPS_forest.Imp$importance$Overall[2])
+}
+data_frame(year, education_importance, 
+           age_importance, female_importance) %>% 
+  ggplot(aes(x = year)) +
+  geom_point(aes(y = education_importance, 
+                 colour = 'Education')) +
+  geom_smooth(aes(y = education_importance, 
+                  colour = 'Education'), method='lm') +
+  geom_point(aes(y = age_importance, 
+                 colour = 'Age')) +
+  geom_smooth(aes(y = age_importance, 
+                  colour = 'Age'), method='lm') +
+  geom_point(aes(y = female_importance, 
+                 colour = 'Gender')) +
+  geom_smooth(aes(y = female_importance, 
+                  colour = 'Gender'), method='lm') +
+  labs(x= 'Year', y='Scaled Variable Importance', colour = '') +
+  theme_classic()  + 
+  theme(legend.position='bottom')
+
+
+
+data_frame(year, education_importance, 
+           age_importance, female_importance) %>% 
+  ggplot(aes(x = year)) +
+  geom_point(aes(y = education_importance, 
+                 colour = 'education_importance')) +
+  labs(x= 'Year', y='Scaled Variable Importance', colour = '') +
+  theme_classic()
+
+
+
+
+
+# Unobserved vs observed factors skill table + decomposition
+CPS_1980.data <- subset(CPS.data, year>=1980 & year<1985)
+CPS_2010.data <- subset(CPS.data, year>=2010 & year<2016)
+
+wages_1980 <- log(CPS_1980.data$rhrwage)
+q_9010_1980 <- quantile(wages_1980, probs = 0.9) - 
+  quantile(wages_1980, probs = 0.1)  
+wages_2010 <- log(CPS_2010.data$rhrwage)
+q_9010_2010 <- quantile(wages_2010, probs = 0.9) - 
+  quantile(wages_2010, probs = 0.1) 
+total_change <- q_9010_2010 - q_9010_1980
+
+#Mincer wage equation adjusted
+CPS_mincer1980.reg <- CPS_1980.data %>%
+  lm( log(rhrwage) ~ I(education) + I(education^2) +
+        I(age-education-6) + I((age-education-6)^2) +
+        I((age-education-6)^3) + I((age-education-6)^4), 
+      data=.)
+
+CPS_mincer2010.reg <- CPS_2010.data %>%
+  lm( log(rhrwage) ~ I(education) + I(education^2) +
+        I(age-education-6) + I((age-education-6)^2) +
+        I((age-education-6)^3) + I((age-education-6)^4), 
+      data=.)
+
+wages_1980 <- predict(CPS_mincer1980.reg, newdata = CPS_2010.data)
+q_9010_1980 <- quantile(wages_1980, probs = 0.9) - 
+  quantile(wages_1980, probs = 0.1)  
+wages_2010 <- log(CPS_2010.data$rhrwage)
+q_9010_2010 <- quantile(wages_2010, probs = 0.9) - 
+  quantile(wages_2010, probs = 0.1) 
+quantity_change <- (q_9010_2010 - q_9010_1980)
+
+wages_1980 <- predict(CPS_mincer2010.reg, newdata = CPS_1980.data)
+q_9010_1980 <- quantile(wages_1980, probs = 0.9) - 
+  quantile(wages_1980, probs = 0.1)  
+wages_2010 <- log(CPS_2010.data$rhrwage)
+q_9010_2010 <- quantile(wages_2010, probs = 0.9) - 
+  quantile(wages_2010, probs = 0.1) 
+price_change <- (q_9010_2010 - q_9010_1980)
+
+unobserved_change <- total_change - quantity_change - price_change
+
+c(total_change, quantity_change, price_change, unobserved_change)
+
+
+
+
+
+
+
+
+
+
+
+# Appendix SUmmary Table.
+stargazer(CPS.data , summary=TRUE,
+            title="Extended Summary Statistics, 1980-2016")
+
+
