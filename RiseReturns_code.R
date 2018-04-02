@@ -17,8 +17,8 @@ library(rpart.plot)
 library(stargazer)
 library(data.table)
 
-CPS.data <- fread('CPS__test_data.csv', header = T, sep = ',')
-# CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
+# CPS.data <- fread('CPS__test_data.csv', header = T, sep = ',')
+CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
 
 
 # Summary statistics table.
@@ -191,7 +191,7 @@ for (i in years){
   # Model 1. Mincer Equation
   CPS_mincer.reg <- CPS_subset.data %>% 
     lm(log(rhrwage) ~ education + I(age-education-6) + I((age-education-6)^2), 
-    data=.)
+       data=.)
   errors <- CPS_mincer.reg$residuals
   sd <- sd(CPS_subset.data$Mincer_log_predictions)
   q_90 <- quantile(errors, probs = 0.9)  
@@ -199,7 +199,7 @@ for (i in years){
   q_10 <- quantile(errors, probs = 0.1)  
   residual_store <- c(residual_store, sd, 
                       (q_90 - q_10), (q_90 - q_50), (q_50 - q_10))
-    
+  
   # Model 2. Adjusted Mincer
   CPS_mincer.reg <- CPS_subset.data %>%
     lm( log(rhrwage) ~ I(education) + I(education^2) +
@@ -213,7 +213,7 @@ for (i in years){
   q_10 <- quantile(errors, probs = 0.1)  
   residual_store <- c(residual_store, sd, 
                       (q_90 - q_10), (q_90 - q_50), (q_50 - q_10))
-
+  
   # Model 3. Random Forest
   CPS_forest.reg <- CPS_subset.data %>%
     train(log_wage_equation ,
@@ -221,7 +221,7 @@ for (i in years){
           data = . , 
           method = 'rf' , 
           trControl = trainControl(method='oob'), 
-          tuneGrid = data.frame(mtry = c(1:21)),
+          tuneGrid = data.frame(mtry = c(4)),
           na.action = na.pass, importance = T,
           metric='RMSE')
   predictions <- predict(CPS_forest.reg)
@@ -240,11 +240,11 @@ for (i in years){
 residual_store <- format(round(residual_store, 2), nsmall = 2)
 
 residual_store <- c('Model 1.', '', '', '',
-  'Model 2.', '', '', '',
-  'Model 3.', '', '', '', '\multicolumn{2}{l}{Observations:}',
-  'S.d.', '90-10', '90-50', '50-10',
-  'S.d.', '90-10', '90-50', '50-10',
-  'S.d.', '90-10', '90-50', '50-10','', residual_store)
+                    'Model 2.', '', '', '',
+                    'Model 3.', '', '', '', '\multicolumn{2}{l}{Observations:}',
+                    'S.d.', '90-10', '90-50', '50-10',
+                    'S.d.', '90-10', '90-50', '50-10',
+                    'S.d.', '90-10', '90-50', '50-10','', residual_store)
 
 residual_store <- matrix(residual_store, nrow=13, ncol=9)
 tab <- xtable(residual_store, comment=FALSE)
@@ -274,74 +274,11 @@ stargazer(CPS_mincer1.reg, CPS_mincer2.reg,
 
 
 
-# Random Forest Variable Importance, by hourly wage
-
-years <- c(c(1980:2007), c(2009:2016))
-year <- education_importance <- age_importance <- female_importance <- c()
-
-log_wage_equation <- log(rhrwage) ~ age + female + race + citizen + 
-  married + rural + suburb + centcity + selfemp + unmem + education
-
-set.seed(47)
-for (i in years){
-  print(i)
-  year <- c(year, i)
-  CPS_forest.reg <- CPS.data %>% subset(year==i) %>% 
-    train(log_wage_equation ,
-          preProcess=c('center', 'scale'),
-          data = . , 
-          method = 'rf' , 
-          trControl = trainControl(method='oob'), 
-          tuneGrid = data.frame(mtry = c(1:21)),
-          na.action = na.pass, importance = T,
-          metric='RMSE')
-  
-  CPS_forest.Imp <- varImp(CPS_forest.reg, scale = FALSE)
-  
-  education_importance <- 
-    c(education_importance, CPS_forest.Imp$importance$Overall[11])
-  age_importance <- 
-    c(age_importance, CPS_forest.Imp$importance$Overall[1])
-  female_importance <- 
-    c(female_importance, CPS_forest.Imp$importance$Overall[2])
-}
-data_frame(year, education_importance, 
-           age_importance, female_importance) %>% 
-  ggplot(aes(x = year)) +
-  geom_point(aes(y = education_importance, 
-                 colour = 'Education')) +
-  geom_smooth(aes(y = education_importance, 
-                  colour = 'Education'), method='lm') +
-  geom_point(aes(y = age_importance, 
-                 colour = 'Age')) +
-  geom_smooth(aes(y = age_importance, 
-                  colour = 'Age'), method='lm') +
-  geom_point(aes(y = female_importance, 
-                 colour = 'Gender')) +
-  geom_smooth(aes(y = female_importance, 
-                  colour = 'Gender'), method='lm') +
-  labs(x= 'Year', y='Scaled Variable Importance', colour = '') +
-  theme_classic()  + 
-  theme(legend.position='bottom')
-
-
-
-data_frame(year, education_importance, 
-           age_importance, female_importance) %>% 
-  ggplot(aes(x = year)) +
-  geom_point(aes(y = education_importance, 
-                 colour = 'education_importance')) +
-  labs(x= 'Year', y='Scaled Variable Importance', colour = '') +
-  theme_classic()
-
-
-
-
 
 
 
 # Appendix SUmmary Table.
 stargazer(CPS.data , summary=TRUE,
-            title="Extended Summary Statistics, 1980-2016")
+          title="Extended Summary Statistics, 1980-2016")
 
 
