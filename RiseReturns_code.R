@@ -154,8 +154,8 @@ CPS_ratio.data %>% ggplot(aes(x=year))+
 # regression tree, graphs for data section.  
 # This is to remove 'self-prediction' in ML regresison, i.e. income predicting income.
 # See paper for further explanation of the variable selection issue.
-log_wage_equation <- log(rhrwage) ~ age + female + race + + citizen + 
-  married + rural + suburb + centcity + selfemp + unmem + firmsz + education
+log_wage_equation <- log(rhrwage) ~ age + female + race  + 
+  married + rural + suburb + centcity + selfemp + firmsz + education
 
 tree.model <- CPS.data %>% subset(year>1979 & year <1986) %>%
   rpart(log_wage_equation , data = .)
@@ -170,6 +170,90 @@ rpart.plot(tree.model, tweak=1.2) # Provide plot for methods section
 
 
 
+
+
+# Graph of estimated wage change by percentile and education, 1980--2016
+wage_educated <- wage_uneducated <- c()
+
+wage_educated_1980 <- log(subset(CPS.data, 
+                             education >= 16 & year>=1980 & year <=1983)$rhrwage)
+wage_uneducated_1980 <- log(subset(CPS.data, education >= 12 & 
+                                   education < 16 & year>=1980 & year <=1983)$rhrwage)
+wage_educated_2016 <- log(subset(CPS.data, 
+                               education >= 16 & year>=2013 & year <=2016)$rhrwage)
+wage_uneducated_2016 <- log(subset(CPS.data, education >= 12 & 
+                               education < 16 & year>=2013 & year <=2016)$rhrwage)
+percentile <- c(1:99)
+for (i in percentile){
+  print(i)
+  educated_change_1980 <- quantile(wage_educated_1980, prob = i/100)
+  educated_change_2016 <- quantile(wage_educated_2016, prob = i/100)
+  wage_educated <- c(wage_educated, educated_change_2016 - educated_change_1980)
+  
+  uneducated_change_1980 <- quantile(wage_uneducated_1980, prob = i/100)
+  uneducated_change_2016 <- quantile(wage_uneducated_2016, prob = i/100)
+  wage_uneducated <- c(wage_uneducated, uneducated_change_2016 - uneducated_change_1980)
+}
+data.frame(percentile, wage_educated, wage_uneducated) %>% 
+  ggplot(aes(x = percentile)) + 
+  geom_point(aes(y = wage_educated, colour = 'College graduates')) +
+  geom_line(aes(y = wage_educated, colour = 'College graduates')) +
+  geom_point(aes(y = wage_uneducated, colour = 'High school graduates')) +
+  geom_line(aes(y = wage_uneducated, colour = 'High school graduates')) +
+  geom_hline(yintercept=00, linetype='dashed') +
+  labs(x= 'Percentile', y='Log Wage Change', colour = '') +
+  theme_bw() +
+  theme(legend.position=c( 0.2, 0.8375), legend.background=element_blank()) +
+  scale_x_continuous(breaks=seq(0, 100, 10)) +
+  scale_y_continuous(breaks=seq(0, 0.8, 0.1)) + 
+  #coord_cartesian(xlim=c(10, 90))
+ggsave('hour_wage_change.png')
+
+
+
+
+
+
+# Graph of estimated wage change by percentile and education, 1980--2016
+wage_educated <- wage_uneducated <- c()
+
+wage_educated_1980 <- log(subset(CPS.data, 
+                                 education >= 16 & year>=1980 & year <=1983)$rincp_ern)
+wage_uneducated_1980 <- log(subset(CPS.data, education >= 12 & 
+                                     education < 16 & year>=1980 & year <=1983)$rincp_ern)
+wage_educated_2016 <- log(subset(CPS.data, 
+                                 education >= 16 & year>=2013 & year <=2016)$rincp_ern)
+wage_uneducated_2016 <- log(subset(CPS.data, education >= 12 & 
+                                     education < 16 & year>=2013 & year <=2016)$rincp_ern)
+percentile <- c(1:99)
+for (i in percentile){
+  print(i)
+  educated_change_1980 <- quantile(wage_educated_1980, prob = i/100)
+  educated_change_2016 <- quantile(wage_educated_2016, prob = i/100)
+  wage_educated <- c(wage_educated, educated_change_2016 - educated_change_1980)
+  
+  uneducated_change_1980 <- quantile(wage_uneducated_1980, prob = i/100)
+  uneducated_change_2016 <- quantile(wage_uneducated_2016, prob = i/100)
+  wage_uneducated <- c(wage_uneducated, uneducated_change_2016 - uneducated_change_1980)
+}
+data.frame(percentile, wage_educated, wage_uneducated) %>% 
+  ggplot(aes(x = percentile)) + 
+  geom_point(aes(y = wage_educated, colour = 'College graduates')) +
+  geom_line(aes(y = wage_educated, colour = 'College graduates')) +
+  geom_point(aes(y = wage_uneducated, colour = 'High school graduates')) +
+  geom_line(aes(y = wage_uneducated, colour = 'High school graduates')) +
+  geom_hline(yintercept=00, linetype='dashed') +
+  labs(x= 'Percentile', y='Log Wage Change', colour = '') +
+  theme_bw() +
+  theme(legend.position=c( 0.2, 0.8375), legend.background=element_blank()) +
+  scale_x_continuous(breaks=seq(0, 100, 10)) +
+  scale_y_continuous(breaks=seq(0, 0.8, 0.1))  
+
+ggsave('annual_wage_change.png')
+  
+
+
+
 # Residuals table
 # Title : Inequality Measures Based on Regression Model Residuals for Hourly Wage
 years <- c(1980, 1985, 1990, 1995, 2000, 2005, 2010)
@@ -177,8 +261,8 @@ years <- c(1980, 1985, 1990, 1995, 2000, 2005, 2010)
 # storer to make a matrix for a LaTeX table
 residual_store <- c()
 
-log_wage_equation <- log(rhrwage) ~ age + female + race + citizen + 
-  married + rural + suburb + centcity + selfemp + unmem + education
+log_wage_equation <- log(rhrwage) ~ age + female + race + 
+  married + rural + suburb + centcity + selfemp + education
 
 set.seed(47)
 for (i in years){
@@ -191,7 +275,7 @@ for (i in years){
   # Model 1. Mincer Equation
   CPS_mincer.reg <- CPS_subset.data %>% 
     lm(log(rhrwage) ~ education + I(age-education-6) + I((age-education-6)^2), 
-       data=.)
+    data=.)
   errors <- CPS_mincer.reg$residuals
   sd <- sd(CPS_subset.data$Mincer_log_predictions)
   q_90 <- quantile(errors, probs = 0.9)  
@@ -199,7 +283,7 @@ for (i in years){
   q_10 <- quantile(errors, probs = 0.1)  
   residual_store <- c(residual_store, sd, 
                       (q_90 - q_10), (q_90 - q_50), (q_50 - q_10))
-  
+    
   # Model 2. Adjusted Mincer
   CPS_mincer.reg <- CPS_subset.data %>%
     lm( log(rhrwage) ~ I(education) + I(education^2) +
@@ -213,7 +297,7 @@ for (i in years){
   q_10 <- quantile(errors, probs = 0.1)  
   residual_store <- c(residual_store, sd, 
                       (q_90 - q_10), (q_90 - q_50), (q_50 - q_10))
-  
+
   # Model 3. Random Forest
   CPS_forest.reg <- CPS_subset.data %>%
     train(log_wage_equation ,
@@ -221,7 +305,7 @@ for (i in years){
           data = . , 
           method = 'rf' , 
           trControl = trainControl(method='oob'), 
-          tuneGrid = data.frame(mtry = c(4)),
+          tuneGrid = data.frame(mtry = c(3)),
           na.action = na.pass, importance = T,
           metric='RMSE')
   predictions <- predict(CPS_forest.reg)
@@ -240,11 +324,11 @@ for (i in years){
 residual_store <- format(round(residual_store, 2), nsmall = 2)
 
 residual_store <- c('Model 1.', '', '', '',
-                    'Model 2.', '', '', '',
-                    'Model 3.', '', '', '', '\multicolumn{2}{l}{Observations:}',
-                    'S.d.', '90-10', '90-50', '50-10',
-                    'S.d.', '90-10', '90-50', '50-10',
-                    'S.d.', '90-10', '90-50', '50-10','', residual_store)
+  'Model 2.', '', '', '',
+  'Model 3.', '', '', '', '\multicolumn{2}{l}{Observations:}',
+  'S.d.', '90-10', '90-50', '50-10',
+  'S.d.', '90-10', '90-50', '50-10',
+  'S.d.', '90-10', '90-50', '50-10','', residual_store)
 
 residual_store <- matrix(residual_store, nrow=13, ncol=9)
 tab <- xtable(residual_store, comment=FALSE)
@@ -273,12 +357,7 @@ stargazer(CPS_mincer1.reg, CPS_mincer2.reg,
           header = FALSE, float = FALSE, no.space = TRUE)
 
 
-
-
-
-
 # Appendix SUmmary Table.
 stargazer(CPS.data , summary=TRUE,
-          title="Extended Summary Statistics, 1980-2016")
-
+            title="Extended Summary Statistics, 1980-2016")
 
