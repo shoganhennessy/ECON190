@@ -21,7 +21,7 @@ CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
 # Form static model for time period 1980-1984
 CPS_mincer1.reg <- CPS.data %>%
   lm( log(rhrwage) ~ education + I(age-education-6) + I((age-education-6)^2),
-      data=.)
+  data=.)
 
 Mincer_residuals_rhrwage <- CPS_mincer1.reg$residuals
 
@@ -58,10 +58,10 @@ CPS.data$Mincer_fixed_resid_rhrwage <- quantile(Mincer_residuals_rhrwage,
 
 # Save Y1, Y2, Y3
 CPS.data$Mincer_Y1_rhrwage <- predict(CPS_mincer1.reg, CPS.data)
-#CPS.data$Mincer_fixed_resid_rhrwage
+  #CPS.data$Mincer_fixed_resid_rhrwage
 
 CPS.data$Mincer_Y2_rhrwage <- CPS.data$Mincer_predicted_rhrwage
-#CPS.data$Mincer_fixed_resid_rhrwage
+  #CPS.data$Mincer_fixed_resid_rhrwage
 
 CPS.data$Mincer_Y3_rhrwage <- CPS.data$Mincer_predicted_rhrwage + 
   CPS.data$Variable_residuals
@@ -282,10 +282,11 @@ ggsave('graph3.png')
 
 # Prediction methods 3. Random Forest
 set.seed(47)
+
 CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
 
-log_wage_equation <- log(rhrwage) ~ age + female + race + citizen + 
-  married + rural + suburb + centcity + selfemp + unmem + education
+log_wage_equation <- log(rhrwage) ~ age + female + race + 
+  married + rural + suburb + centcity + selfemp + education
 
 # Form static model
 CPS_mincer1.reg <- CPS.data %>% 
@@ -297,7 +298,6 @@ CPS_mincer1.reg <- CPS.data %>%
         tuneGrid = data.frame(mtry = c(4)),
         na.action = na.pass, importance = T,
         metric='RMSE')
-CPS_mincer1.reg 
 
 Mincer_residuals_rhrwage <- log(CPS.data$rhrwage) - predict(CPS_mincer1.reg)
 
@@ -315,7 +315,7 @@ for (i in years){
           method = 'rf' , 
           trControl = trainControl(method='oob'), 
           tuneGrid = data.frame(mtry = c(4)),
-          na.action = na.pass, importance = T,
+          na.action = na.pass, importance = F,
           metric='RMSE')
   Mincer_predicted_rhrwage <- c(Mincer_predicted_rhrwage,
                                 predict(CPS_mincer.reg))
