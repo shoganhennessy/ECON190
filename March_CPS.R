@@ -128,17 +128,19 @@ CPS.data <- dplyr::bind_rows(CPS.data,
 CPS.data <- dplyr::bind_rows(CPS.data, 
                              read.csv('March_CPS/CPS2016.csv'))
 
-
-
 # Make race a numeric variable:
 # race = 1 if white, non-Hispanic, =2 if black, =3 if Hispanic
+# = 0 if unavailable.  This is best coding for prediction package caret.
 CPS.data <- CPS.data %>% mutate(race = ifelse(
-  wbhaom == 'White', 1 ,
-  ifelse(wbhaom == 'Black', 2,
+  wbho == 'White', 1 ,
+  ifelse(wbho == 'Black', 2,
          ifelse(
-           wbhaom == 'Hispanic', 3, NA ))))
+           wbho == 'Hispanic', 3, 0 ))))
 # Drop redundant race variable 
-CPS.data <- CPS.data %>% subset(select = -c(wbhaom))
+CPS.data <- CPS.data %>% subset(select = -c(wbho))
+
+# CHange NAs in some variables to 0 for prediction package caret.
+CPS.data <- CPS.data %>% mutate(race = ifelse(is.na(race), 0, race))
 
 
 # Variable selection.  Drops most of the 475 variables, by selecting 21
@@ -155,13 +157,11 @@ CPS.data <- CPS.data %>% subset(select = c(
   'female', # whether female
   'race', # race variable
   'empl', # employment status, 1 is employed
-  'citizen', # whether a citizen
   'married', # whether married
   'rural', # whether live in rural area
   'suburb', # whether live in suburbs
   'centcity', # whether they live in a central city
   'selfemp', # self-employed
-  'unmem', # union membership
   'firmsz', # size of firm they work at  
   'educ2', 'educ92', 'educ' #education variables
 ))
@@ -254,6 +254,9 @@ CPS.data <- CPS.data %>% subset(rincp_all >= 0) # positive total yearly income
 CPS.data <- CPS.data %>% subset(rincp_ern >= (7.25*40*14)) # year income above full time min wage, minimum 14 weeks
 CPS.data <- CPS.data %>% subset(age >= 18 & age <= 65) # 18-65 years old
 
+# Drop redundant variables 
+CPS.data <- CPS.data %>% subset(select = -c(empl))
+
 nrow(subset(CPS.data, year==2007))
 # extremely low amount of observations.
 nrow(subset(CPS.data, year==2008)) 
@@ -263,22 +266,11 @@ nrow(subset(CPS.data, year==2009))
 CPS.data <- CPS.data %>% subset(year != 2008) 
 # 2008 extremely low number of observations.
 
-# Export large data frame
-fwrite(CPS.data, "CPS_data.csv")
-
-# Export subsample of data frame, to test analysis.
-set.seed(47)
-fwrite(sample_n(CPS.data, 100000), "CPS__test_data.csv")
-
-
-
 # Create a combined id/year variable, for matching of predictions later
-# This takes a LONG time, can't find a more efficient method
-CPS.data %>% mutate(id2 =  toString(id))
-CPS.data %>% mutate(id3 =  toString(year))
-CPS.data %>% mutate(id1 =  paste(id2, id3, sep=''))
+CPS.data$id <- c(1:nrow(CPS.data)) 
 
-CPS.data <- CPS.data %>% subset(select = -c(id2, id3) )
+# Remove observation with absurdly hour hourly wage
+CPS.data <- CPS.data %>% subset(rhrwage < 100000) 
 
 
 # Export large data frame
@@ -286,4 +278,4 @@ fwrite(CPS.data, "CPS_data.csv")
 
 # Export subsample of data frame, to test analysis.
 set.seed(47)
-fwrite(sample_n(CPS.data, 100000), "CPS__test_data.csv")
+fwrite(sample_n(CPS.data, 10000), "CPS__test_data.csv")
