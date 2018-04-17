@@ -24,12 +24,8 @@ CPS.data <- fread('CPS_data.csv', header = T, sep = ',')
 # Summary statistics table.
 
 # Real wages are CPI-U-RS base 2015
-CPS.data %>% subset(select = c(
-  'rhrwage',
-  'rincp_ern',
-  'age',
-  'education',
-  'female')) %>% 
+
+CPS.data# %>% subset(select = c(Race_white, Race_black, Race_hispanic, Race_other)) %>%
   stargazer(. , summary=TRUE,
             title="Summary Statistics, 1980-2016")
 

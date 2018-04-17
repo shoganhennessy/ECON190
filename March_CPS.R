@@ -136,12 +136,23 @@ CPS.data <- CPS.data %>% mutate(race = ifelse(
   ifelse(wbho == 'Black', 2,
          ifelse(
            wbho == 'Hispanic', 3, 0 ))))
-# Drop redundant race variable 
-CPS.data <- CPS.data %>% subset(select = -c(wbho))
 
 # CHange NAs in some variables to 0 for prediction package caret.
 CPS.data <- CPS.data %>% mutate(race = ifelse(is.na(race), 0, race))
 
+# Create variables for summary table
+CPS.data <- CPS.data %>% 
+  mutate(Race_white = ifelse(wbho == 'White', 1 , 0)) %>% 
+           mutate(Race_black = ifelse(wbho == 'Black', 1 , 0)) %>% 
+                    mutate(Race_hispanic = ifelse(wbho == 'Hispanic', 1 , 0)) %>% 
+                    mutate(Race_other = ifelse(Race_white == 0 &
+                                                 Race_black == 0 &
+                                                 Race_hispanic == 0 , 1, 0))
+
+
+
+# Drop redundant race variable 
+CPS.data <- CPS.data %>% subset(select = -c(wbho))
 
 # Variable selection.  Drops most of the 475 variables, by selecting 21
 CPS.data <- CPS.data %>% subset(select = c(
@@ -163,7 +174,8 @@ CPS.data <- CPS.data %>% subset(select = c(
   'centcity', # whether they live in a central city
   'selfemp', # self-employed
   'firmsz', # size of firm they work at  
-  'educ2', 'educ92', 'educ' #education variables
+  'educ2', 'educ92', 'educ', #education variables
+  'Race_white', 'Race_black', 'Race_hispanic', 'Race_other' # race vairables
 ))
 
 # Normalise education variable for all years
