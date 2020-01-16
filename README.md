@@ -4,8 +4,8 @@ This repository contains all the files for my Senior Thesis in economics, in acc
 The files perform analysis on the March CPS data set 1980--2016 to document a rise returns to skill, with modern prediction techniques.
 
 ## Final Paper:
-The Rise in Returns to Skill, 
-[read full paper here](hhttps://github.com/shoganhennessy/ECON190/blob/master/HoganH_SeniorPaper.pdf),
+The Rise in Returns to Skill, [read full paper here](
+https://github.com/shoganhennessy/ECON190/blob/master/HoganH_SeniorPaper.pdf),
 or see the final presentation [here](
 https://github.com/shoganhennessy/ECON190/blob/master/HoganH_SeniorPresentationpdf.pdf).
 
