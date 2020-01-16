@@ -7,7 +7,7 @@ The files perform analysis on the March CPS data set 1980--2016 to document a ri
 The Rise in Returns to Skill, [read full paper here](
 https://github.com/shoganhennessy/ECON190/blob/master/HoganH_SeniorPaper.pdf),
 or see the final presentation [here](
-https://github.com/shoganhennessy/ECON190/blob/master/HoganH_SeniorPresentationpdf.pdf).
+https://github.com/shoganhennessy/ECON190/blob/master/HoganH_SeniorPresentation.pdf).
 
 
 ### Code
