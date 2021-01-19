@@ -13,5 +13,8 @@ https://github.com/shoganhennessy/ECON190/blob/master/HoganH_SeniorPresentation.
 ### Code
 Folder to house code dealing with, manipulating, and building predictive models for wages in the March CPS.  (All performed in R).
 
-### Figures
-Folder housing all figures and LaTeX files for the final paper.
+### Data
+Folder for all data files used in the analysis.
+
+### Paper
+Folder housing all figures and LaTeX files for the final paper and presentation.
