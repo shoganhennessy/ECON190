@@ -1,132 +1,84 @@
 # 26/01/2018 Senan Hogan-H.
-
-
 # This file builds and works on the March CPS dataset.
 # http://ceprdata.org/cps-uniform-data-extracts/march-cps-supplement/march-cps-data/
-
-
-gc()
-ls()
 library(tidyverse) 
 library(data.table)
+library(haven)
 
-
-# The March CPS files are in a directory named 'March_CPS'
-# The following combines all files 1980-2016 to a VERY large csv files to be worked on 
-# This is not to be tried on a standard computer, not enough memory to host.
-# Use on a remote instance or powerful server.
-
+# The March CPS files are in a directory named '../Data/March_CPS'
+# The following combines all files 1980-2016 to a csv file to be worked on in a later script 
 
 # Find the individual files (in dta form) here:
 # http://ceprdata.org/cps-uniform-data-extracts/march-cps-supplement/march-cps-data/
 
 
-CPS.data <- read.csv('March_CPS/CPS1980.csv')
-CPS.data <- dplyr::bind_rows(CPS.data,
-                             read.csv('March_CPS/CPS1981.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1982.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1983.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1984.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1985.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data,
-                             read.csv('March_CPS/CPS1986.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1987.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1988.csv'))
+#################################################
+## Convert all to csv, removing old stata file
+variables_to_keep <- c(
+  'id', # variable to identify individuals
+  'year', # variable for year
+  'rhrwage', # real hourly wage, per person
+  'inch_pct', # income percentile (20 is top, 1 bottom 5%) 
+  'rincp_all', # real annual income, for person
+  'rincp_ern', # real annual earnings (no unearned income), for person
+  'rinch_all', # real annual income, for household
+  'rinch_ern', # real annual earnings (no unearned income), for household
+  'age', # age
+  'female', # whether female
+  'wbho', # race variables
+  'empl', # employment status, 1 is employed
+  'married', # whether married
+  'rural', # whether live in rural area
+  'suburb', # whether live in suburbs
+  'centcity', # whether they live in a central city
+  'selfemp', # self-employed
+  'firmsz', # size of firm they work at  
+  'educ2', 'educ92', 'educ' #education variables
+)
+
+## Convert each file for 1980-2016
+for (year in 1980:2016){
+  old_file <- '../Data/March_CPS/cepr_march_' %>% paste0(year) %>% paste0('.dta')
+  new_file <- '../Data/March_CPS/CPS' %>% paste0(year) %>% paste0('.csv')
+  old_file %>% paste0(' -> ') %>% paste0(new_file) %>% print()
+
+  ## Read Stata data, keeping relevant variables
+  Stata.data <- read_dta(old_file) %>% select(variables_to_keep)
+
+  # Deal with Stata labels
+  Stata.data$wbho <- Stata.data$wbho %>% as_factor() %>% as.character()
+  Stata.data$educ <- Stata.data$educ %>% as_factor() %>% as.character()
+  Stata.data$educ2 <- Stata.data$educ2 %>% as_factor() %>% as.character()
+  Stata.data$educ92 <- Stata.data$educ92 %>% as_factor() %>% as.character()
+  Stata.data$firmsz <- Stata.data$firmsz %>% as_factor() %>% as.character()
+
+  # Write new csv
+  Stata.data %>% fwrite(new_file)
+}
 
 
-# month, age variable changes from character/string type to factor type in 1989
-CPS.data$month <- as.factor(as.numeric(CPS.data$month))
-CPS.data$age <- as.factor(as.numeric(CPS.data$age))
+
+#########################################
+### Combine all CSV files.
+
+CPS.data <- matrix(ncol=length(variables_to_keep),nrow=0) %>% data.table()
+names(CPS.data) <- variables_to_keep
+
+for (year in 1980:2016){
+  print(year)
+  old_file <- '../Data/March_CPS/cepr_march_' %>% paste0(year) %>% paste0('.dta')
+  new_file <- '../Data/March_CPS/CPS' %>% paste0(year) %>% paste0('.csv')
+  CPS.data <- CPS.data %>% bind_rows(fread(new_file))
+  ## Delete redundant dta and csv
+  file.remove(old_file)
+  file.remove(new_file)
+}
 
 
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1989.csv'))
 
+#########################################
+### Clean data file inneeded information.
 
-# make previous files have 3 for month.
-
-
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1990.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1991.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1992.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1993.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1994.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1995.csv'))
-
-
-CPS.data$mig_flag <- as.factor(CPS.data$mig_flag)
-
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1996.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1997.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data,
-                             read.csv('March_CPS/CPS1998.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS1999.csv'))
-
-
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2000.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2001.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2002.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2003.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2004.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2005.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2006.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2007.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2008.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2009.csv'))
-
-
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2010.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2011.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2012.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2013.csv'))
-
-
-CPS.data$month <- match('March', month.name)
-CPS.data$parno <- as.factor(CPS.data$parno)
-CPS.data$spouseno <- as.factor(CPS.data$spouseno)
-CPS.data$famno <- as.factor(CPS.data$famno)
-CPS.data$age <- as.numeric(CPS.data$age)
-CPS.data$unmem <- as.numeric(CPS.data$unmem)
-CPS.data$uncov <- as.numeric(CPS.data$uncov)
-CPS.data$agi <- as.factor(CPS.data$agi)
-CPS.data$fica <- as.factor(CPS.data$fica)
-CPS.data$fmoop <- as.factor(CPS.data$fmoop)
-
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2014.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2015.csv'))
-CPS.data <- dplyr::bind_rows(CPS.data, 
-                             read.csv('March_CPS/CPS2016.csv'))
 
 # Make race a numeric variable:
 # race = 1 if white, non-Hispanic, =2 if black, =3 if Hispanic
@@ -150,35 +102,9 @@ CPS.data <- CPS.data %>%
                                                  Race_hispanic == 0 , 1, 0))
 
 
-
 # Drop redundant race variable 
 CPS.data <- CPS.data %>% subset(select = -c(wbho))
 
-# Variable selection.  Drops most of the 475 variables, by selecting 21
-CPS.data <- CPS.data %>% subset(select = c(
-  'id', # variable to identify individuals
-  'year', # variable for year
-  'rhrwage', # real hourly wage, per person
-  'inch_pct', # income percentile (20 is top, 1 bottom 5%) 
-  'rincp_all', # real annual income, for person
-  'rincp_ern', # real annual earnings (no unearned income), for person
-  'rinch_all', # real annual income, for household
-  'rinch_ern', # real annual earnings (no unearned income), for household
-  'age', # age
-  'female', # whether female
-  'race', # race variable
-  'empl', # employment status, 1 is employed
-  'married', # whether married
-  'rural', # whether live in rural area
-  'suburb', # whether live in suburbs
-  'centcity', # whether they live in a central city
-  'selfemp', # self-employed
-  'firmsz', # size of firm they work at  
-  'educ2', 'educ92', 'educ', #education variables
-  'Race_white', 'Race_black', 'Race_hispanic', 'Race_other' # race vairables
-))
-
-# Normalise education variable for all years
 CPS.data$education <- NA
 # adjust educ2 variable for 1980-1991
 CPS.data$education <- ifelse(CPS.data$year<1992 &
@@ -285,9 +211,9 @@ CPS.data$id <- c(1:nrow(CPS.data))
 CPS.data <- CPS.data %>% subset(rhrwage < 100000) 
 
 
-# Export large data frame
-fwrite(CPS.data, "CPS_data.csv")
+# Export csv of data frame
+fwrite(CPS.data, "../Data/CPS_data.csv")
 
 # Export subsample of data frame, to test analysis.
 set.seed(47)
-fwrite(sample_n(CPS.data, 10000), "CPS__test_data.csv")
+fwrite(sample_n(CPS.data, 10000), "../Data/CPS__test_data.csv")
