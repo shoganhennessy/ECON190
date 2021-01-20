@@ -41,44 +41,40 @@ for (year in 1980:2016){
   old_file <- '../Data/March_CPS/cepr_march_' %>% paste0(year) %>% paste0('.dta')
   new_file <- '../Data/March_CPS/CPS' %>% paste0(year) %>% paste0('.csv')
   old_file %>% paste0(' -> ') %>% paste0(new_file) %>% print()
-
   ## Read Stata data, keeping relevant variables
   Stata.data <- read_dta(old_file) %>% select(variables_to_keep)
-
   # Deal with Stata labels
   Stata.data$wbho <- Stata.data$wbho %>% as_factor() %>% as.character()
   Stata.data$educ <- Stata.data$educ %>% as_factor() %>% as.character()
   Stata.data$educ2 <- Stata.data$educ2 %>% as_factor() %>% as.character()
   Stata.data$educ92 <- Stata.data$educ92 %>% as_factor() %>% as.character()
   Stata.data$firmsz <- Stata.data$firmsz %>% as_factor() %>% as.character()
-
   # Write new csv
   Stata.data %>% fwrite(new_file)
 }
 
 
-
 #########################################
 ### Combine all CSV files.
-
-CPS.data <- matrix(ncol=length(variables_to_keep),nrow=0) %>% data.table()
-names(CPS.data) <- variables_to_keep
-
+#Initialise dataframe
+CPS.data <- fread('../Data/March_CPS/CPS1980.csv') %>%
+  select(variables_to_keep) %>%
+  top_n(0)
+# Append the rest
 for (year in 1980:2016){
   print(year)
   old_file <- '../Data/March_CPS/cepr_march_' %>% paste0(year) %>% paste0('.dta')
   new_file <- '../Data/March_CPS/CPS' %>% paste0(year) %>% paste0('.csv')
-  CPS.data <- CPS.data %>% bind_rows(fread(new_file))
+  new.data <- fread(new_file)
+  CPS.data <- CPS.data %>% bind_rows(new.data)
   ## Delete redundant dta and csv
-  file.remove(old_file)
-  file.remove(new_file)
+  #file.remove(old_file)
+  #file.remove(new_file)
 }
-
 
 
 #########################################
 ### Clean data file inneeded information.
-
 
 # Make race a numeric variable:
 # race = 1 if white, non-Hispanic, =2 if black, =3 if Hispanic
@@ -195,11 +191,13 @@ CPS.data <- CPS.data %>% subset(age >= 18 & age <= 65) # 18-65 years old
 # Drop redundant variables 
 CPS.data <- CPS.data %>% subset(select = -c(empl))
 
-nrow(subset(CPS.data, year==2007))
+
+### SHow yearly variable number
+print(nrow(subset(CPS.data, year==2007)))
 # extremely low amount of observations.
-nrow(subset(CPS.data, year==2008)) 
+print(nrow(subset(CPS.data, year==2008)))
 # justification for removing 2008
-nrow(subset(CPS.data, year==2009))
+print(nrow(subset(CPS.data, year==2009)))
 
 CPS.data <- CPS.data %>% subset(year != 2008) 
 # 2008 extremely low number of observations.
@@ -216,4 +214,6 @@ fwrite(CPS.data, "../Data/CPS_data.csv")
 
 # Export subsample of data frame, to test analysis.
 set.seed(47)
-fwrite(sample_n(CPS.data, 10000), "../Data/CPS__test_data.csv")
+CPS.data %>%
+  sample_n(10000) %>%
+  fwrite("../Data/CPS__test_data.csv")
