@@ -1,5 +1,6 @@
+[![DOI](https://zenodo.org/badge/114507803.svg)](https://zenodo.org/badge/latestdoi/114507803)
 # ECON190
-This repository contains all the files for my Senior Thesis in economics, in accordance with the requirements for the Pomona College course Senior Seminar in Economics, Spring 2018.
+This repository contains all the files for my Senior Thesis in economics, in accordance with the requirements for the Pomona College course Senior Seminar in Economics (ECON190), Spring 2018.
 
 The files perform analysis on the March CPS data set 1980--2016 to document a rise returns to skill, with modern prediction techniques.
 
